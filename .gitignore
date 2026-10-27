@@ -8,3 +8,7 @@
 # Generated HLS output
 *.hls/
 sample-hls*/
+output-hls*/
+
+# Junk
+.DS_Store
