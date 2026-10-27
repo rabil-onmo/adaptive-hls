@@ -1,27 +1,134 @@
 <!doctype html>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Adaptive HLS test</title>
 <style>
-  body { font: 16px system-ui, sans-serif; margin: 2rem auto; max-width: 960px; padding: 0 1rem; }
-  video-player, video-skin, hlsjs-video { display: block; width: 100%; }
+  body {
+    font:
+      16px system-ui,
+      sans-serif;
+    margin: 2rem auto;
+    max-width: 960px;
+    padding: 0 1rem;
+  }
+  video-player,
+  video-skin,
+  hlsjs-video {
+    display: block;
+    width: 100%;
+  }
+  .controller-help {
+    color: #555;
+  }
 </style>
 <script type="importmap">
-  { "imports": {
-    "@videojs/html/": "https://esm.sh/@videojs/html@10.2.0/",
-    "@videojs/hlsjs-video": "https://esm.sh/@videojs/hlsjs-video@10.2.0"
-  } }
+  {
+    "imports": {
+      "@videojs/html/": "https://esm.sh/@videojs/html@10.2.0/",
+      "@videojs/hlsjs-video": "https://esm.sh/@videojs/hlsjs-video@10.2.0"
+    }
+  }
 </script>
 <script type="module">
-  import '@videojs/html/video/player';
-  import '@videojs/html/video/skin';
-  import '@videojs/html/media/hlsjs-video';
+  import "@videojs/html/video/player";
+  import "@videojs/html/video/skin";
+  import "@videojs/html/media/hlsjs-video";
 
-  document.addEventListener('DOMContentLoaded', () => {
-    document.querySelector('hlsjs-video').source = {
-      src: new URL('master.m3u8', location.href).href,
+  document.addEventListener("DOMContentLoaded", () => {
+    const video = document.querySelector("hlsjs-video");
+    const status = document.querySelector("#controller-status");
+    const states = new Map();
+    let frame = 0;
+
+    video.source = {
+      src: new URL("master.m3u8", location.href).href,
       capRenditionToPlayerSize: false,
     };
+
+    const buttonPressed = (gamepad, index) => {
+      const button = gamepad.buttons[index];
+      return button?.pressed || (button?.value ?? 0) > 0.5;
+    };
+    const edge = (state, index, pressed) => {
+      const justPressed = pressed && !state[index];
+      state[index] = pressed;
+      return justPressed;
+    };
+    const changeVolume = (amount) => {
+      video.muted = false;
+      video.volume = Math.max(0, Math.min(1, video.volume + amount));
+    };
+    const seek = (amount) => {
+      if (!Number.isFinite(video.currentTime)) return;
+      const duration = Number.isFinite(video.duration)
+        ? video.duration
+        : Infinity;
+      video.currentTime = Math.max(
+        0,
+        Math.min(duration, video.currentTime + amount),
+      );
+    };
+    const togglePlayback = () => {
+      if (video.paused) video.play().catch(() => {});
+      else video.pause();
+    };
+    const toggleFullscreen = () => {
+      (video.isFullscreen
+        ? video.exitFullscreen()
+        : video.requestFullscreen()
+      ).catch(() => {});
+    };
+    const handleGamepad = (gamepad) => {
+      const state = states.get(gamepad.index) ?? [];
+      states.set(gamepad.index, state);
+
+      if (edge(state, 0, buttonPressed(gamepad, 0))) togglePlayback(); // A / Cross
+      if (edge(state, 9, buttonPressed(gamepad, 9))) togglePlayback(); // Start
+      if (edge(state, 1, buttonPressed(gamepad, 1))) video.muted = !video.muted; // B / Circle
+      if (edge(state, 3, buttonPressed(gamepad, 3))) toggleFullscreen(); // Y / Triangle
+      const skipBackward = edge(state, 4, buttonPressed(gamepad, 4));
+      const rewind = edge(state, 6, buttonPressed(gamepad, 6));
+      const skipForward = edge(state, 5, buttonPressed(gamepad, 5));
+      const fastForward = edge(state, 7, buttonPressed(gamepad, 7));
+      const dpadLeft = edge(state, 14, buttonPressed(gamepad, 14));
+      const stickLeft = edge(state, 20, (gamepad.axes[0] ?? 0) < -0.5);
+      const dpadRight = edge(state, 15, buttonPressed(gamepad, 15));
+      const stickRight = edge(state, 21, (gamepad.axes[0] ?? 0) > 0.5);
+      const dpadUp = edge(state, 12, buttonPressed(gamepad, 12));
+      const stickUp = edge(state, 22, (gamepad.axes[1] ?? 0) < -0.5);
+      const dpadDown = edge(state, 13, buttonPressed(gamepad, 13));
+      const stickDown = edge(state, 23, (gamepad.axes[1] ?? 0) > 0.5);
+
+      if (skipBackward || rewind) seek(-10);
+      if (skipForward || fastForward) seek(10);
+      if (dpadLeft || stickLeft) seek(-5);
+      if (dpadRight || stickRight) seek(5);
+      if (dpadUp || stickUp) changeVolume(0.05);
+      if (dpadDown || stickDown) changeVolume(-0.05);
+    };
+    const updateGamepads = () => {
+      let connected = false;
+      for (const gamepad of navigator.getGamepads()) {
+        if (gamepad?.connected) {
+          connected = true;
+          handleGamepad(gamepad);
+        }
+      }
+      frame = connected ? requestAnimationFrame(updateGamepads) : 0;
+    };
+
+    if (!navigator.getGamepads) {
+      status.textContent = "Gamepad controls are unavailable in this browser.";
+      return;
+    }
+    window.addEventListener("gamepadconnected", ({ gamepad }) => {
+      status.textContent = "Controller connected.";
+      if (!frame) updateGamepads();
+    });
+    window.addEventListener("gamepaddisconnected", ({ gamepad }) => {
+      states.delete(gamepad.index);
+      status.textContent = "Controller disconnected.";
+    });
   });
 </script>
 <h1>Adaptive HLS test</h1>
@@ -30,3 +137,10 @@
     <hlsjs-video crossorigin="anonymous" muted playsinline></hlsjs-video>
   </video-skin>
 </video-player>
+<p class="controller-help">
+  Controller: A / Start play or pause; D-pad or left stick seek and adjust
+  volume; B mute; Y fullscreen; bumpers/triggers skip 10 seconds.
+</p>
+<p id="controller-status" role="status" aria-live="polite">
+  Connect a controller and press a button to use gamepad controls.
+</p>

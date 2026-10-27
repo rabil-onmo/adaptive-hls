@@ -56,6 +56,8 @@ awslocal s3 cp player.html s3://adaptive-hls/player.html --content-type 'text/ht
 
 Open `http://localhost:4566/adaptive-hls/player.html`, then use **Settings → Quality**. The player uses Video.js 10 with hls.js and selects Auto by default.
 
+Gamepads use the browser’s standard mapping: **A/Start** play or pause, **D-pad/left stick** seek and adjust volume, **B** mute, **Y** fullscreen, and **bumpers/triggers** skip 10 seconds.
+
 ## AWS S3 and CloudFront deployment
 
 Create an S3 bucket and a CloudFront distribution whose S3 origin uses Origin Access Control (OAC). Keep S3 Block Public Access enabled; CloudFront, not public S3, serves the objects. Set the distribution's default root object to `player.html` if it is only for this test player.
