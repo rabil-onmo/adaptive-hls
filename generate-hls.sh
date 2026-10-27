@@ -24,8 +24,9 @@ command -v ffprobe >/dev/null || die "ffprobe is required"
 source_height=$(ffprobe -v error -select_streams v:0 -show_entries stream=height -of csv=p=0 "$input")
 [[ "$source_height" =~ ^[0-9]+$ ]] || die "could not read the primary video height"
 
+segment_duration=5
 frame_rate=$(ffprobe -v error -select_streams v:0 -show_entries stream=r_frame_rate -of csv=p=0 "$input")
-gop=$(awk -F/ 'NF == 2 && $2 > 0 { printf "%.0f\n", 6 * $1 / $2; found = 1 } END { if (!found) print 180 }' <<<"$frame_rate")
+gop=$(awk -F/ -v seconds="$segment_duration" 'NF == 2 && $2 > 0 { printf "%.0f\n", seconds * $1 / $2; found = 1 } END { if (!found) print seconds * 30 }' <<<"$frame_rate")
 
 has_audio=0
 if ffprobe -v error -select_streams a:0 -show_entries stream=index -of csv=p=0 "$input" | grep -q '[0-9]'; then
@@ -93,7 +94,7 @@ done
 
 args+=(
   -f hls
-  -hls_time 6
+  -hls_time "$segment_duration"
   -hls_playlist_type vod
   -hls_flags independent_segments
   -hls_segment_filename "$output_dir/%v/segment_%03d.ts"
