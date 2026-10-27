@@ -1,0 +1,10 @@
+# Source video files
+*.mp4
+*.mov
+*.mkv
+*.webm
+*.avi
+
+# Generated HLS output
+*.hls/
+sample-hls*/
