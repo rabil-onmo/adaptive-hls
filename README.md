@@ -5,7 +5,21 @@ Generate a VOD HLS ladder from a video with FFmpeg, then serve it through S3-com
 ## Requirements
 
 - `ffmpeg` with `libx264`
-- `ffprobe`
+- `ffprobe` (included with FFmpeg)
+
+Install FFmpeg with your platform's package manager:
+
+macOS or Linux with Homebrew:
+
+```bash
+brew install ffmpeg
+```
+
+Windows with WinGet:
+
+```powershell
+winget install -e --id Gyan.FFmpeg
+```
 
 ## Generate HLS
 
