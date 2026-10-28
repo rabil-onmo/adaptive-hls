@@ -58,6 +58,8 @@ Open `http://localhost:4566/adaptive-hls/player.html`, then use **Settings → Q
 
 Gamepads use the browser’s standard mapping: **A/Start** play or pause, **D-pad/left stick** seek and adjust volume, **B** mute, **Y** fullscreen, and **bumpers/triggers** skip 10 seconds.
 
+`youtube-player.html` demonstrates the same gamepad mapping with `https://www.youtube.com/watch?v=Q5Lvtjzde6o` through YouTube's IFrame Player API.
+
 ## AWS S3 and CloudFront deployment
 
 Create an S3 bucket and a CloudFront distribution whose S3 origin uses Origin Access Control (OAC). Keep S3 Block Public Access enabled; CloudFront, not public S3, serves the objects. Set the distribution's default root object to `player.html` if it is only for this test player.

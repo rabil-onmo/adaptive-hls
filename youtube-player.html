@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>YouTube gamepad demo</title>
+    <style>
+      body {
+        font:
+          16px system-ui,
+          sans-serif;
+        margin: 2rem auto;
+        max-width: 960px;
+        padding: 0 1rem;
+      }
+      #youtube-player {
+        aspect-ratio: 16 / 9;
+        min-height: 270px;
+        width: 100%;
+      }
+      #youtube-player iframe {
+        border: 0;
+        height: 100%;
+        width: 100%;
+      }
+      .controller-help {
+        color: #555;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>YouTube gamepad demo</h1>
+    <div id="youtube-player"></div>
+    <p class="controller-help">
+      Controller: A / Start play or pause; D-pad or left stick seek and adjust
+      volume; B mute; Y fullscreen; bumpers/triggers skip 10 seconds.
+    </p>
+    <p id="player-status" role="status" aria-live="polite">
+      Loading YouTube player.
+    </p>
+    <p id="controller-status" role="status" aria-live="polite">
+      Connect a controller and press a button to use gamepad controls.
+    </p>
+
+    <script>
+      const playerStatus = document.querySelector("#player-status");
+      const controllerStatus = document.querySelector("#controller-status");
+      const states = new Map();
+      let player;
+      let frame = 0;
+
+      const buttonPressed = (gamepad, index) => {
+        const button = gamepad.buttons[index];
+        return button?.pressed || (button?.value ?? 0) > 0.5;
+      };
+      const edge = (state, index, pressed) => {
+        const justPressed = pressed && !state[index];
+        state[index] = pressed;
+        return justPressed;
+      };
+      const changeVolume = (amount) => {
+        if (!player) return;
+        player.unMute();
+        player.setVolume(
+          Math.max(0, Math.min(100, player.getVolume() + amount)),
+        );
+      };
+      const seek = (amount) => {
+        if (!player) return;
+        const duration = player.getDuration();
+        if (!Number.isFinite(duration) || duration <= 0) return;
+        player.seekTo(
+          Math.max(0, Math.min(duration, player.getCurrentTime() + amount)),
+          true,
+        );
+      };
+      const togglePlayback = () => {
+        if (!player) return;
+        if (player.getPlayerState() === 1) player.pauseVideo();
+        else player.playVideo();
+      };
+      const toggleFullscreen = () => {
+        if (!player) return;
+        const target = player.getIframe();
+        (document.fullscreenElement
+          ? document.exitFullscreen()
+          : target.requestFullscreen()
+        ).catch(() => {});
+      };
+      const handleGamepad = (gamepad) => {
+        const state = states.get(gamepad.index) ?? [];
+        states.set(gamepad.index, state);
+
+        if (edge(state, 0, buttonPressed(gamepad, 0))) togglePlayback(); // A / Cross
+        if (edge(state, 9, buttonPressed(gamepad, 9))) togglePlayback(); // Start
+        if (edge(state, 1, buttonPressed(gamepad, 1)) && player) {
+          if (player.isMuted()) player.unMute();
+          else player.mute();
+        }
+        if (edge(state, 3, buttonPressed(gamepad, 3))) toggleFullscreen(); // Y / Triangle
+        const skipBackward = edge(state, 4, buttonPressed(gamepad, 4));
+        const rewind = edge(state, 6, buttonPressed(gamepad, 6));
+        const skipForward = edge(state, 5, buttonPressed(gamepad, 5));
+        const fastForward = edge(state, 7, buttonPressed(gamepad, 7));
+        const dpadLeft = edge(state, 14, buttonPressed(gamepad, 14));
+        const stickLeft = edge(state, 20, (gamepad.axes[0] ?? 0) < -0.5);
+        const dpadRight = edge(state, 15, buttonPressed(gamepad, 15));
+        const stickRight = edge(state, 21, (gamepad.axes[0] ?? 0) > 0.5);
+        const dpadUp = edge(state, 12, buttonPressed(gamepad, 12));
+        const stickUp = edge(state, 22, (gamepad.axes[1] ?? 0) < -0.5);
+        const dpadDown = edge(state, 13, buttonPressed(gamepad, 13));
+        const stickDown = edge(state, 23, (gamepad.axes[1] ?? 0) > 0.5);
+
+        if (skipBackward || rewind) seek(-10);
+        if (skipForward || fastForward) seek(10);
+        if (dpadLeft || stickLeft) seek(-5);
+        if (dpadRight || stickRight) seek(5);
+        if (dpadUp || stickUp) changeVolume(5);
+        if (dpadDown || stickDown) changeVolume(-5);
+      };
+      const updateGamepads = () => {
+        let connected = false;
+        for (const gamepad of navigator.getGamepads()) {
+          if (gamepad?.connected) {
+            connected = true;
+            handleGamepad(gamepad);
+          }
+        }
+        frame = connected ? requestAnimationFrame(updateGamepads) : 0;
+      };
+
+      if (!navigator.getGamepads) {
+        controllerStatus.textContent =
+          "Gamepad controls are unavailable in this browser.";
+      } else {
+        window.addEventListener("gamepadconnected", ({ gamepad }) => {
+          controllerStatus.textContent = "Controller connected.";
+          if (!frame) updateGamepads();
+        });
+        window.addEventListener("gamepaddisconnected", ({ gamepad }) => {
+          states.delete(gamepad.index);
+          controllerStatus.textContent = "Controller disconnected.";
+        });
+      }
+
+      window.onYouTubeIframeAPIReady = () => {
+        player = new YT.Player("youtube-player", {
+          videoId: "Q5Lvtjzde6o",
+          playerVars: { origin: location.origin, playsinline: 1 },
+          events: {
+            onReady: () => {
+              playerStatus.textContent = "YouTube player ready.";
+            },
+            onError: () => {
+              playerStatus.textContent = "YouTube could not load this video.";
+            },
+          },
+        });
+      };
+    </script>
+    <script async src="https://www.youtube.com/iframe_api"></script>
+  </body>
+</html>
