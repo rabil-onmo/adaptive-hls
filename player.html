@@ -3,47 +3,98 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Adaptive HLS test</title>
 <style>
+  /* Shared page tokens keep the standalone demo consistent and legible. */
+  :root {
+    color: #172033;
+    font: 16px/1.5 system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+
+  /* Center the player and give the page a neutral application background. */
   body {
-    font: 16px system-ui, sans-serif;
-    margin: 2rem auto;
-    max-width: 960px;
-    padding: 0 1rem;
-  }
-  video-player, video-skin, hlsjs-video { display: block; width: 100%; }
-  .source-form {
-    align-items: end;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    margin-bottom: 0.25rem;
-  }
-  .source-form label { display: grid; flex: 1 1 18rem; font-weight: 600; gap: 0.25rem; }
-  .source-form input { font: inherit; min-width: 0; padding: 0.5rem; }
-  .source-form button { font: inherit; padding: 0.5rem 0.75rem; }
-  #controller-status { color: #555; }
-  .controller-help {
-    border: 1px solid #ddd;
-    border-radius: 0.75rem;
-    margin-top: 1rem;
-    padding: 1rem;
-  }
-  .controller-help h2 { font-size: 1rem; margin: 0 0 0.75rem; }
-  .controller-help ul {
-    display: grid;
-    gap: 0.5rem;
-    grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
-    list-style: none;
+    background: #f6f8fc;
     margin: 0;
-    padding: 0;
+    padding: clamp(1.25rem, 4vw, 3rem) 1rem;
   }
-  .controller-help li { align-items: center; display: flex; gap: 0.5rem; }
-  kbd {
-    background: #f3f3f3;
-    border: 1px solid #bbb;
-    border-radius: 0.25rem;
+  .player-page { margin: 0 auto; max-width: 960px; }
+
+  /* Establish a clear title hierarchy before the interactive controls. */
+  .page-header { margin-bottom: 1.5rem; }
+  .eyebrow {
+    color: #4f46e5;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    margin: 0 0 0.35rem;
+    text-transform: uppercase;
+  }
+  h1 { font-size: clamp(1.75rem, 4vw, 2.5rem); letter-spacing: -0.035em; line-height: 1.1; margin: 0; }
+  .page-header > :last-child { color: #667085; margin: 0.65rem 0 0; max-width: 42rem; }
+
+  /* Reuse one elevated card treatment for supporting player controls. */
+  .source-panel, .controller-help {
+    background: #fff;
+    border: 1px solid #e1e6ef;
+    border-radius: 1rem;
+    box-shadow: 0 1px 2px rgb(23 32 51 / 0.04);
+  }
+
+  /* Keep the custom HLS URL label, input, and primary action together. */
+  .source-panel { margin-bottom: 1.25rem; padding: 1rem; }
+  .source-form { align-items: end; display: flex; flex-wrap: wrap; gap: 0.75rem; }
+  .source-form label { color: #344054; display: grid; flex: 1 1 20rem; font-size: 0.9rem; font-weight: 650; gap: 0.35rem; }
+  .source-form input {
+    background: #fff;
+    border: 1px solid #cbd5e1;
+    border-radius: 0.6rem;
+    color: #172033;
     font: inherit;
+    min-width: 0;
+    padding: 0.65rem 0.75rem;
+  }
+  /* Use a visible keyboard focus ring instead of relying on color alone. */
+  .source-form input:focus, .source-form button:focus-visible { outline: 3px solid #c7d2fe; outline-offset: 2px; }
+  .source-form button {
+    background: #4f46e5;
+    border: 1px solid #4338ca;
+    border-radius: 0.6rem;
+    color: #fff;
+    cursor: pointer;
+    font: inherit;
+    font-weight: 650;
+    padding: 0.65rem 1rem;
+  }
+  .source-form button:hover { background: #4338ca; }
+  .source-hint { color: #667085; font-size: 0.85rem; margin: 0.6rem 0 0; }
+
+  /* Clip the media skin to the player frame and add depth to the primary task. */
+  .player-surface { background: #0f172a; border-radius: 1rem; box-shadow: 0 16px 32px rgb(23 32 51 / 0.14); overflow: hidden; }
+  video-player, video-skin, hlsjs-video { display: block; width: 100%; }
+
+  /* Present controller mappings as a scannable, responsive reference card. */
+  .controller-help { margin-top: 1.25rem; padding: 1rem; }
+  .controller-help h2 { font-size: 1rem; margin: 0; }
+  .controller-help > p { color: #667085; font-size: 0.9rem; margin: 0.3rem 0 1rem; }
+  .controller-help ul { display: grid; gap: 0.65rem; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); list-style: none; margin: 0; padding: 0; }
+  .controller-help li { align-items: center; color: #475467; display: flex; gap: 0.45rem; }
+  /* Keyboard-style tokens make physical controller labels easy to scan. */
+  kbd {
+    background: #f2f4f7;
+    border: 1px solid #d0d5dd;
+    border-bottom-color: #98a2b3;
+    border-radius: 0.35rem;
+    color: #344054;
+    font: 0.85rem ui-monospace, SFMono-Regular, Menlo, monospace;
     padding: 0.1rem 0.35rem;
     white-space: nowrap;
+  }
+  /* Announce controller connection changes without competing with primary content. */
+  #controller-status { color: #667085; font-size: 0.9rem; margin: 0.75rem 0 0; }
+
+  /* Stack dense controls on narrow viewports to preserve tap target size. */
+  @media (max-width: 40rem) {
+    .source-form button { width: 100%; }
+    .controller-help ul { grid-template-columns: 1fr; }
   }
 </style>
 <script type="importmap">
@@ -54,31 +105,43 @@
     }
   }
 </script>
+<!-- Load Video.js web components and its hls.js-backed media element. -->
 <script type="module">
   import "@videojs/html/video/player";
   import "@videojs/html/video/skin";
   import "@videojs/html/media/hlsjs-video";
 
+  // Wait for the declarative form and custom player elements to exist before wiring them together.
   document.addEventListener("DOMContentLoaded", () => {
+    // Keep references to the media element, its native Video.js controls, and the page-owned controls.
     const video = document.querySelector("hlsjs-video");
     const skin = document.querySelector("video-skin");
     const sourceForm = document.querySelector("#source-form");
     const sourceInput = document.querySelector("#source-url");
     const status = document.querySelector("#controller-status");
-    const states = new Map();
     const controls = skin.shadowRoot;
+
+    // Store previous controller button states so held inputs only trigger once per press.
+    const states = new Map();
     let frame = 0;
 
+    // Assign a complete HLS source object while retaining Video.js's full rendition ladder.
     const loadSource = (source) => {
       video.source = { src: source.href, capRenditionToPlayerSize: false };
     };
+
+    // Start with this deployment's master playlist and show its resolved URL in the form.
     const defaultSource = new URL("master.m3u8", location.href);
     sourceInput.value = defaultSource.href;
     loadSource(defaultSource);
+
+    // Clear custom URL validation as the visitor corrects a previously unsupported protocol.
     sourceInput.addEventListener("input", () => sourceInput.setCustomValidity(""));
     sourceForm.addEventListener("submit", (event) => {
       event.preventDefault();
       const source = new URL(sourceInput.value);
+
+      // Only browser-loadable web URLs are accepted; the playlist resources still require CORS access.
       if (!/https?:/.test(source.protocol)) {
         sourceInput.setCustomValidity("Enter an HTTP or HTTPS HLS playlist URL.");
         sourceInput.reportValidity();
@@ -86,19 +149,26 @@
       }
       loadSource(source);
     });
+
+    // A real play-button click is a user gesture, so safely unmute before native playback starts.
     controls.querySelector("media-play-button").addEventListener("click", () => {
       video.muted = false;
     });
 
+    // Read a Gamepad API button consistently across digital and analog controller implementations.
     const buttonPressed = (gamepad, index) => {
       const button = gamepad.buttons[index];
       return button?.pressed || (button?.value ?? 0) > 0.5;
     };
+
+    // Report only a rising edge, preventing each animation frame from repeating a held action.
     const edge = (state, index, pressed) => {
       const justPressed = pressed && !state[index];
       state[index] = pressed;
       return justPressed;
     };
+
+    // Use Video.js's existing controls so gamepad users receive the same UI and availability rules.
     const nativeMenu = () => controls.querySelector("media-menu");
     const nativeControl = (selector, name) => {
       const control = controls.querySelector(selector);
@@ -108,12 +178,16 @@
       }
       control.click();
     };
+
+    // Give native sliders keyboard input, preserving their built-in increments and accessibility semantics.
     const nativeSlider = (label, key) => {
       const slider = controls.querySelector(`media-slider-thumb[aria-label="${label}"]`);
       if (!slider) return;
       slider.focus();
       slider.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true, composed: true }));
     };
+
+    // Toggle the original Video.js Settings menu and focus its first visible entry when opening it.
     const openNativeMenu = () => {
       const menu = nativeMenu();
       if (menu.open) {
@@ -123,26 +197,35 @@
       menu.openMenu();
       menu.querySelector(":scope > media-menu-content[role=menu] > media-menu-item:not([hidden])")?.focus();
     };
+
+    // Forward vertical navigation to the focused native menu item.
     const navigateNativeMenu = (key) => {
       controls.activeElement?.dispatchEvent(
         new KeyboardEvent("keydown", { key, bubbles: true, composed: true }),
       );
     };
+
+    // Activate a focused category or radio option without duplicating Video.js's selection logic.
     const activateNativeMenuItem = () => {
       const active = controls.activeElement;
       if (["menuitem", "menuitemradio"].includes(active?.getAttribute("role"))) {
         active.click();
       }
     };
+
+    // Clamp direct timeline skips to the known VOD range.
     const seek = (amount) => {
       if (!Number.isFinite(video.currentTime)) return;
       const duration = Number.isFinite(video.duration) ? video.duration : Infinity;
       video.currentTime = Math.max(0, Math.min(duration, video.currentTime + amount));
     };
+
+    // Translate the browser-standard gamepad layout into player and native-menu actions.
     const handleGamepad = (gamepad) => {
       const gamepadState = states.get(gamepad.index) ?? [];
       states.set(gamepad.index, gamepadState);
 
+      // Face buttons, bumpers, triggers, B8 Back, B9 hamburger menu, and stick clicks.
       const play = edge(gamepadState, 0, buttonPressed(gamepad, 0));
       const mute = edge(gamepadState, 1, buttonPressed(gamepad, 1));
       const captions = edge(gamepadState, 2, buttonPressed(gamepad, 2));
@@ -155,6 +238,8 @@
       const menu = edge(gamepadState, 9, buttonPressed(gamepad, 9));
       const pictureInPicture = edge(gamepadState, 10, buttonPressed(gamepad, 10));
       const remotePlayback = edge(gamepadState, 11, buttonPressed(gamepad, 11));
+
+      // Normalize D-pad buttons and left-stick axes into the same directional actions.
       const dpadUp = edge(gamepadState, 12, buttonPressed(gamepad, 12));
       const dpadDown = edge(gamepadState, 13, buttonPressed(gamepad, 13));
       const dpadLeft = edge(gamepadState, 14, buttonPressed(gamepad, 14));
@@ -164,6 +249,7 @@
       const stickUp = edge(gamepadState, 22, (gamepad.axes[1] ?? 0) < -0.5);
       const stickDown = edge(gamepadState, 23, (gamepad.axes[1] ?? 0) > 0.5);
 
+      // B9 opens Settings. While open, controller actions operate only on that native menu.
       if (menu) openNativeMenu();
       if (nativeMenu().open) {
         if (mute || back || dpadLeft || stickLeft) nativeMenu().close();
@@ -175,6 +261,7 @@
         return;
       }
 
+      // Outside Settings, route actions through native controls or predictable seek and slider behavior.
       if (play) nativeControl("media-play-button", "Playback");
       if (mute) nativeControl("media-mute-button", "Mute");
       if (captions) nativeControl("media-captions-button", "Captions");
@@ -188,6 +275,8 @@
       if (dpadUp || stickUp) nativeSlider("Volume", "ArrowUp");
       if (dpadDown || stickDown) nativeSlider("Volume", "ArrowDown");
     };
+
+    // Poll connected controllers only while at least one is active to avoid an idle animation loop.
     const updateGamepads = () => {
       let connected = false;
       for (const gamepad of navigator.getGamepads()) {
@@ -199,10 +288,13 @@
       frame = connected ? requestAnimationFrame(updateGamepads) : 0;
     };
 
+    // Gracefully describe browsers that do not expose the Gamepad API.
     if (!navigator.getGamepads) {
       status.textContent = "Gamepad controls are unavailable in this browser.";
       return;
     }
+
+    // Begin polling on connection and remove stale edge state when a controller disconnects.
     window.addEventListener("gamepadconnected", ({ gamepad }) => {
       status.textContent = "Controller connected.";
       if (!frame) updateGamepads();
@@ -213,32 +305,54 @@
     });
   });
 </script>
-<h1>Adaptive HLS test</h1>
-<form id="source-form" class="source-form">
-  <label for="source-url">
-    HLS playlist URL
-    <input id="source-url" type="url" required autocomplete="url" spellcheck="false" />
-  </label>
-  <button type="submit">Load stream</button>
-</form>
-<video-player>
-  <video-skin>
-    <hlsjs-video crossorigin="anonymous" muted playsinline></hlsjs-video>
-  </video-skin>
-</video-player>
-<section class="controller-help" aria-labelledby="controller-help-title">
-  <h2 id="controller-help-title">Controller controls</h2>
-  <ul>
-    <li><kbd>A</kbd> Play or pause; choose a setting</li>
-    <li><kbd>B</kbd> Mute; close Settings</li>
-    <li><kbd>X</kbd> Captions <span aria-hidden="true">·</span> <kbd>Y</kbd> Fullscreen</li>
-    <li><kbd>LB/RB/LT/RT</kbd> Seek 10 seconds</li>
-    <li><kbd>B9 / ☰</kbd> Open Video.js Settings</li>
-    <li><kbd>B8 / Back</kbd> Close Settings</li>
-    <li><kbd>D-pad / left stick</kbd> Seek, volume, or navigate Settings</li>
-    <li><kbd>L3</kbd> Picture-in-picture <span aria-hidden="true">·</span> <kbd>R3</kbd> Remote playback</li>
-  </ul>
-</section>
-<p id="controller-status" role="status" aria-live="polite">
-  Connect a controller and press a button to use gamepad controls.
-</p>
+<!-- The application shell groups the title, stream selector, player, and controller reference. -->
+<main class="player-page">
+  <!-- Explain the page purpose before presenting the stream-loading action. -->
+  <header class="page-header">
+    <p class="eyebrow">Adaptive streaming</p>
+    <h1>Adaptive HLS Player</h1>
+    <p>Play the default stream or load an HLS playlist you control.</p>
+  </header>
+
+  <!-- Let visitors replace the default playlist without editing the page source. -->
+  <section class="source-panel" aria-label="HLS stream source">
+    <form id="source-form" class="source-form">
+      <label for="source-url">
+        HLS playlist URL
+        <input id="source-url" type="url" required autocomplete="url" spellcheck="false" aria-describedby="source-hint" />
+      </label>
+      <button type="submit">Load stream</button>
+    </form>
+    <p id="source-hint" class="source-hint">Use an HTTP(S) M3U8 playlist with CORS enabled.</p>
+  </section>
+
+  <!-- Video.js renders its native playback controls inside this framed player surface. -->
+  <section class="player-surface" aria-label="Video player">
+    <video-player>
+      <video-skin>
+        <hlsjs-video crossorigin="anonymous" muted playsinline></hlsjs-video>
+      </video-skin>
+    </video-player>
+  </section>
+
+  <!-- Keep controller actions available as a compact reference instead of hiding them in instructions. -->
+  <section class="controller-help" aria-labelledby="controller-help-title">
+    <h2 id="controller-help-title">Controller controls</h2>
+    <p>Native controls remain available with a mouse, keyboard, or touch.</p>
+    <ul>
+      <li><kbd>A</kbd> Play or pause; choose a setting</li>
+      <li><kbd>B</kbd> Mute; close Settings</li>
+      <li><kbd>X</kbd> Captions <span aria-hidden="true">·</span> <kbd>Y</kbd> Fullscreen</li>
+      <li><kbd>LB/RB/LT/RT</kbd> Seek 10 seconds</li>
+      <li><kbd>B9 / ☰</kbd> Open Video.js Settings</li>
+      <li><kbd>B8 / Back</kbd> Close Settings</li>
+      <li><kbd>D-pad / left stick</kbd> Seek, volume, or navigate Settings</li>
+      <li><kbd>L3</kbd> Picture-in-picture <span aria-hidden="true">·</span> <kbd>R3</kbd> Remote playback</li>
+    </ul>
+  </section>
+
+  <!-- Announce connection and feature availability changes for assistive technology users. -->
+  <p id="controller-status" role="status" aria-live="polite">
+    Connect a controller and press a button to use gamepad controls.
+  </p>
+</main>
