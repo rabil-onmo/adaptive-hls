@@ -3,69 +3,114 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Adaptive HLS test</title>
 <style>
-  /* Shared page tokens keep the standalone demo consistent and legible. */
-  :root {
-    color: #172033;
-    font: 16px/1.5 system-ui, sans-serif;
+  /* Default to light, then let an explicit page choice or the system preference set the palette. */
+  :root, :root[data-theme="light"] {
+    color-scheme: light;
+    --accent: #4f46e5;
+    --accent-hover: #4338ca;
+    --accent-border: #4338ca;
+    --background: #f6f8fc;
+    --border: #e1e6ef;
+    --input-border: #cbd5e1;
+    --key-background: #f2f4f7;
+    --key-border: #d0d5dd;
+    --key-border-bottom: #98a2b3;
+    --muted: #667085;
+    --surface: #fff;
+    --text: #172033;
+    --text-subtle: #344054;
+    --text-secondary: #475467;
+    --focus: #c7d2fe;
+    --card-shadow: rgb(23 32 51 / 0.04);
   }
+  /* The first visit follows a dark operating-system preference without JavaScript. */
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme]) {
+      color-scheme: dark;
+      --accent: #818cf8;
+      --accent-hover: #a5b4fc;
+      --accent-border: #818cf8;
+      --background: #101522;
+      --border: #2a354a;
+      --input-border: #48566f;
+      --key-background: #273248;
+      --key-border: #48566f;
+      --key-border-bottom: #64748b;
+      --muted: #aab6c8;
+      --surface: #182033;
+      --text: #f4f7fb;
+      --text-subtle: #d6deeb;
+      --text-secondary: #c0cad9;
+      --focus: #6366f1;
+      --card-shadow: rgb(0 0 0 / 0.22);
+    }
+  }
+  /* A manual switch always takes precedence over the system preference. */
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --accent: #818cf8;
+    --accent-hover: #a5b4fc;
+    --accent-border: #818cf8;
+    --background: #101522;
+    --border: #2a354a;
+    --input-border: #48566f;
+    --key-background: #273248;
+    --key-border: #48566f;
+    --key-border-bottom: #64748b;
+    --muted: #aab6c8;
+    --surface: #182033;
+    --text: #f4f7fb;
+    --text-subtle: #d6deeb;
+    --text-secondary: #c0cad9;
+    --focus: #6366f1;
+    --card-shadow: rgb(0 0 0 / 0.22);
+  }
+
+  /* Shared page tokens keep the standalone demo consistent and legible. */
+  :root { color: var(--text); font: 16px/1.5 system-ui, sans-serif; }
   * { box-sizing: border-box; }
 
   /* Center the player and give the page a neutral application background. */
-  body {
-    background: #f6f8fc;
-    margin: 0;
-    padding: clamp(1.25rem, 4vw, 3rem) 1rem;
-  }
+  body { background: var(--background); margin: 0; padding: clamp(1.25rem, 4vw, 3rem) 1rem; }
   .player-page { margin: 0 auto; max-width: 960px; }
 
-  /* Establish a clear title hierarchy before the interactive controls. */
-  .page-header { margin-bottom: 1.5rem; }
-  .eyebrow {
-    color: #4f46e5;
-    font-size: 0.8rem;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    margin: 0 0 0.35rem;
-    text-transform: uppercase;
-  }
+  /* Establish a clear title hierarchy and expose the theme control in the header. */
+  .page-header { align-items: start; display: flex; gap: 1rem; justify-content: space-between; margin-bottom: 1.5rem; }
+  .header-copy { flex: 1; }
+  .eyebrow { color: var(--accent); font-size: 0.8rem; font-weight: 700; letter-spacing: 0.08em; margin: 0 0 0.35rem; text-transform: uppercase; }
   h1 { font-size: clamp(1.75rem, 4vw, 2.5rem); letter-spacing: -0.035em; line-height: 1.1; margin: 0; }
-  .page-header > :last-child { color: #667085; margin: 0.65rem 0 0; max-width: 42rem; }
+  .header-copy > :last-child { color: var(--muted); margin: 0.65rem 0 0; max-width: 42rem; }
+  .theme-toggle {
+    align-items: center;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 0.6rem;
+    color: var(--text-subtle);
+    cursor: pointer;
+    display: inline-flex;
+    font: inherit;
+    font-size: 0.9rem;
+    font-weight: 650;
+    gap: 0.4rem;
+    padding: 0.55rem 0.7rem;
+    white-space: nowrap;
+  }
+  .theme-toggle:hover { border-color: var(--accent); color: var(--accent); }
+  .theme-toggle:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
 
   /* Reuse one elevated card treatment for supporting player controls. */
-  .source-panel, .controller-help {
-    background: #fff;
-    border: 1px solid #e1e6ef;
-    border-radius: 1rem;
-    box-shadow: 0 1px 2px rgb(23 32 51 / 0.04);
-  }
+  .source-panel, .controller-help { background: var(--surface); border: 1px solid var(--border); border-radius: 1rem; box-shadow: 0 1px 2px var(--card-shadow); }
 
   /* Keep the custom HLS URL label, input, and primary action together. */
   .source-panel { margin-bottom: 1.25rem; padding: 1rem; }
   .source-form { align-items: end; display: flex; flex-wrap: wrap; gap: 0.75rem; }
-  .source-form label { color: #344054; display: grid; flex: 1 1 20rem; font-size: 0.9rem; font-weight: 650; gap: 0.35rem; }
-  .source-form input {
-    background: #fff;
-    border: 1px solid #cbd5e1;
-    border-radius: 0.6rem;
-    color: #172033;
-    font: inherit;
-    min-width: 0;
-    padding: 0.65rem 0.75rem;
-  }
+  .source-form label { color: var(--text-subtle); display: grid; flex: 1 1 20rem; font-size: 0.9rem; font-weight: 650; gap: 0.35rem; }
+  .source-form input { background: var(--surface); border: 1px solid var(--input-border); border-radius: 0.6rem; color: var(--text); font: inherit; min-width: 0; padding: 0.65rem 0.75rem; }
   /* Use a visible keyboard focus ring instead of relying on color alone. */
-  .source-form input:focus, .source-form button:focus-visible { outline: 3px solid #c7d2fe; outline-offset: 2px; }
-  .source-form button {
-    background: #4f46e5;
-    border: 1px solid #4338ca;
-    border-radius: 0.6rem;
-    color: #fff;
-    cursor: pointer;
-    font: inherit;
-    font-weight: 650;
-    padding: 0.65rem 1rem;
-  }
-  .source-form button:hover { background: #4338ca; }
-  .source-hint { color: #667085; font-size: 0.85rem; margin: 0.6rem 0 0; }
+  .source-form input:focus, .source-form button:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+  .source-form button { background: var(--accent); border: 1px solid var(--accent-border); border-radius: 0.6rem; color: #fff; cursor: pointer; font: inherit; font-weight: 650; padding: 0.65rem 1rem; }
+  .source-form button:hover { background: var(--accent-hover); }
+  .source-hint { color: var(--muted); font-size: 0.85rem; margin: 0.6rem 0 0; }
 
   /* Clip the media skin to the player frame and add depth to the primary task. */
   .player-surface { background: #0f172a; border-radius: 1rem; box-shadow: 0 16px 32px rgb(23 32 51 / 0.14); overflow: hidden; }
@@ -74,25 +119,18 @@
   /* Present controller mappings as a scannable, responsive reference card. */
   .controller-help { margin-top: 1.25rem; padding: 1rem; }
   .controller-help h2 { font-size: 1rem; margin: 0; }
-  .controller-help > p { color: #667085; font-size: 0.9rem; margin: 0.3rem 0 1rem; }
+  .controller-help > p { color: var(--muted); font-size: 0.9rem; margin: 0.3rem 0 1rem; }
   .controller-help ul { display: grid; gap: 0.65rem; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); list-style: none; margin: 0; padding: 0; }
-  .controller-help li { align-items: center; color: #475467; display: flex; gap: 0.45rem; }
+  .controller-help li { align-items: center; color: var(--text-secondary); display: flex; gap: 0.45rem; }
   /* Keyboard-style tokens make physical controller labels easy to scan. */
-  kbd {
-    background: #f2f4f7;
-    border: 1px solid #d0d5dd;
-    border-bottom-color: #98a2b3;
-    border-radius: 0.35rem;
-    color: #344054;
-    font: 0.85rem ui-monospace, SFMono-Regular, Menlo, monospace;
-    padding: 0.1rem 0.35rem;
-    white-space: nowrap;
-  }
+  kbd { background: var(--key-background); border: 1px solid var(--key-border); border-bottom-color: var(--key-border-bottom); border-radius: 0.35rem; color: var(--text-subtle); font: 0.85rem ui-monospace, SFMono-Regular, Menlo, monospace; padding: 0.1rem 0.35rem; white-space: nowrap; }
   /* Announce controller connection changes without competing with primary content. */
-  #controller-status { color: #667085; font-size: 0.9rem; margin: 0.75rem 0 0; }
+  #controller-status { color: var(--muted); font-size: 0.9rem; margin: 0.75rem 0 0; }
 
   /* Stack dense controls on narrow viewports to preserve tap target size. */
   @media (max-width: 40rem) {
+    .page-header { align-items: stretch; flex-direction: column; }
+    .theme-toggle { align-self: flex-start; }
     .source-form button { width: 100%; }
     .controller-help ul { grid-template-columns: 1fr; }
   }
@@ -119,11 +157,36 @@
     const sourceForm = document.querySelector("#source-form");
     const sourceInput = document.querySelector("#source-url");
     const status = document.querySelector("#controller-status");
+    const themeToggle = document.querySelector("#theme-toggle");
+    const themeIcon = document.querySelector("#theme-icon");
+    const themeLabel = document.querySelector("#theme-label");
     const controls = skin.shadowRoot;
 
     // Store previous controller button states so held inputs only trigger once per press.
     const states = new Map();
     let frame = 0;
+
+    // Follow the operating-system preference until this page session receives a manual choice.
+    const systemTheme = window.matchMedia("(prefers-color-scheme: dark)");
+    let selectedTheme = null;
+    const updateTheme = () => {
+      const theme = selectedTheme ?? (systemTheme.matches ? "dark" : "light");
+      document.documentElement.toggleAttribute("data-theme", selectedTheme !== null);
+      if (selectedTheme !== null) document.documentElement.dataset.theme = selectedTheme;
+      themeToggle.setAttribute("aria-pressed", String(theme === "dark"));
+      themeToggle.setAttribute("aria-label", `Switch to ${theme === "dark" ? "light" : "dark"} theme`);
+      themeIcon.textContent = theme === "dark" ? "☾" : "☀";
+      themeLabel.textContent = `${theme[0].toUpperCase()}${theme.slice(1)} mode`;
+    };
+    updateTheme();
+    systemTheme.addEventListener("change", () => {
+      if (selectedTheme === null) updateTheme();
+    });
+    themeToggle.addEventListener("click", () => {
+      const currentTheme = selectedTheme ?? (systemTheme.matches ? "dark" : "light");
+      selectedTheme = currentTheme === "dark" ? "light" : "dark";
+      updateTheme();
+    });
 
     // Assign a complete HLS source object while retaining Video.js's full rendition ladder.
     const loadSource = (source) => {
@@ -309,9 +372,16 @@
 <main class="player-page">
   <!-- Explain the page purpose before presenting the stream-loading action. -->
   <header class="page-header">
-    <p class="eyebrow">Adaptive streaming</p>
-    <h1>Adaptive HLS Player</h1>
-    <p>Play the default stream or load an HLS playlist you control.</p>
+    <div class="header-copy">
+      <p class="eyebrow">Adaptive streaming</p>
+      <h1>Adaptive HLS Player</h1>
+      <p>Play the default stream or load an HLS playlist you control.</p>
+    </div>
+    <!-- The button reports the current theme and switches to its opposite on activation. -->
+    <button id="theme-toggle" class="theme-toggle" type="button" aria-pressed="false">
+      <span id="theme-icon" aria-hidden="true">☀</span>
+      <span id="theme-label">Light mode</span>
+    </button>
   </header>
 
   <!-- Let visitors replace the default playlist without editing the page source. -->
