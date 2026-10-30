@@ -10,6 +10,17 @@
     padding: 0 1rem;
   }
   video-player, video-skin, hlsjs-video { display: block; width: 100%; }
+  .source-form {
+    align-items: end;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 0.25rem;
+  }
+  .source-form label { display: grid; flex: 1 1 18rem; font-weight: 600; gap: 0.25rem; }
+  .source-form input { font: inherit; min-width: 0; padding: 0.5rem; }
+  .source-form button { font: inherit; padding: 0.5rem 0.75rem; }
+  #controller-status { color: #555; }
   .controller-help {
     border: 1px solid #ddd;
     border-radius: 0.75rem;
@@ -34,7 +45,6 @@
     padding: 0.1rem 0.35rem;
     white-space: nowrap;
   }
-  #controller-status { color: #555; }
 </style>
 <script type="importmap">
   {
@@ -52,15 +62,30 @@
   document.addEventListener("DOMContentLoaded", () => {
     const video = document.querySelector("hlsjs-video");
     const skin = document.querySelector("video-skin");
+    const sourceForm = document.querySelector("#source-form");
+    const sourceInput = document.querySelector("#source-url");
     const status = document.querySelector("#controller-status");
     const states = new Map();
     const controls = skin.shadowRoot;
     let frame = 0;
 
-    video.source = {
-      src: new URL("master.m3u8", location.href).href,
-      capRenditionToPlayerSize: false,
+    const loadSource = (source) => {
+      video.source = { src: source.href, capRenditionToPlayerSize: false };
     };
+    const defaultSource = new URL("master.m3u8", location.href);
+    sourceInput.value = defaultSource.href;
+    loadSource(defaultSource);
+    sourceInput.addEventListener("input", () => sourceInput.setCustomValidity(""));
+    sourceForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const source = new URL(sourceInput.value);
+      if (!/https?:/.test(source.protocol)) {
+        sourceInput.setCustomValidity("Enter an HTTP or HTTPS HLS playlist URL.");
+        sourceInput.reportValidity();
+        return;
+      }
+      loadSource(source);
+    });
     controls.querySelector("media-play-button").addEventListener("click", () => {
       video.muted = false;
     });
@@ -189,6 +214,13 @@
   });
 </script>
 <h1>Adaptive HLS test</h1>
+<form id="source-form" class="source-form">
+  <label for="source-url">
+    HLS playlist URL
+    <input id="source-url" type="url" required autocomplete="url" spellcheck="false" />
+  </label>
+  <button type="submit">Load stream</button>
+</form>
 <video-player>
   <video-skin>
     <hlsjs-video crossorigin="anonymous" muted playsinline></hlsjs-video>
