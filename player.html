@@ -348,28 +348,34 @@
       updateTheme();
     });
 
-    // Assign a complete HLS source object while retaining Video.js's full rendition ladder.
+    // Assign the supplied relative path or absolute URL without rewriting deployment-specific hostnames.
     const loadSource = (source) => {
-      video.source = { src: source.href, capRenditionToPlayerSize: false };
+      video.source = { src: source, capRenditionToPlayerSize: false };
     };
 
-    // Start with this deployment's master playlist and show its resolved URL in the form.
-    const defaultSource = new URL("master.m3u8", location.href);
-    sourceInput.value = defaultSource.href;
+    // Keep the default playlist as portable plain text for any static deployment.
+    const defaultSource = "master.m3u8";
+    sourceInput.value = defaultSource;
     loadSource(defaultSource);
 
-    // Clear custom URL validation as the visitor corrects a previously unsupported protocol.
+    // Clear custom URL validation as the visitor corrects a previously unsupported path or protocol.
     sourceInput.addEventListener("input", () =>
       sourceInput.setCustomValidity(""),
     );
     sourceForm.addEventListener("submit", (event) => {
       event.preventDefault();
-      const source = new URL(sourceInput.value);
+      const source = sourceInput.value.trim();
+      let resolvedSource;
+      try {
+        resolvedSource = new URL(source, location.href);
+      } catch {
+        resolvedSource = null;
+      }
 
-      // Only browser-loadable web URLs are accepted; the playlist resources still require CORS access.
-      if (!/https?:/.test(source.protocol)) {
+      // Allow same-origin relative paths and HTTP(S) URLs; external resources still require CORS access.
+      if (!source || !resolvedSource || !/^https?:/.test(resolvedSource.protocol)) {
         sourceInput.setCustomValidity(
-          "Enter an HTTP or HTTPS HLS playlist URL.",
+          "Enter a relative playlist path or an HTTP(S) HLS playlist URL.",
         );
         sourceInput.reportValidity();
         return;
@@ -582,9 +588,10 @@
         HLS playlist URL
         <input
           id="source-url"
-          type="url"
+          type="text"
           required
           autocomplete="url"
+          inputmode="url"
           spellcheck="false"
           aria-describedby="source-hint"
         />
@@ -592,7 +599,7 @@
       <button type="submit">Load stream</button>
     </form>
     <p id="source-hint" class="source-hint">
-      Use an HTTP(S) M3U8 playlist with CORS enabled.
+      Use a relative M3U8 path or an HTTP(S) playlist with CORS enabled.
     </p>
   </section>
 

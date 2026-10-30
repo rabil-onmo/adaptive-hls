@@ -59,7 +59,7 @@ Open `http://localhost:4566/adaptive-hls/player.html` for the custom HLS player 
 
 ### Load a custom HLS stream
 
-`player.html` includes an **HLS playlist URL** field. Paste an `http` or `https` M3U8 URL and select **Load stream**. The playlist and every referenced segment, key, subtitle, and audio-track resource must permit the player origin through CORS; otherwise the browser cannot load the stream.
+`player.html` uses the portable relative default `master.m3u8`, so it works unchanged when the player and HLS assets share a deployment path. The **HLS playlist URL** field also accepts a relative M3U8 path or an `http`/`https` URL. External playlists and every referenced segment, key, subtitle, and audio-track resource must permit the player origin through CORS.
 
 ## Gamepad support
 
