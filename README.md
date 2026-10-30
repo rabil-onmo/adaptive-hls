@@ -47,18 +47,36 @@ sample-hls/
 
 ## LocalStack playback
 
-The test player is `player.html`. With LocalStack running and an `adaptive-hls` bucket configured for browser reads:
+The test players are `player.html` and `youtube-player.html`. With LocalStack running and an `adaptive-hls` bucket configured for browser reads:
 
 ```bash
 awslocal s3 sync sample-hls s3://adaptive-hls
 awslocal s3 cp player.html s3://adaptive-hls/player.html --content-type 'text/html; charset=utf-8'
+awslocal s3 cp youtube-player.html s3://adaptive-hls/youtube-player.html --content-type 'text/html; charset=utf-8'
 ```
 
-Open `http://localhost:4566/adaptive-hls/player.html`, then use **Settings → Quality**. The player uses Video.js 10 with hls.js and selects Auto by default.
+Open `http://localhost:4566/adaptive-hls/player.html` for the custom HLS player and `http://localhost:4566/adaptive-hls/youtube-player.html` for the YouTube embed.
 
-Gamepads use the browser’s standard mapping: **A/Start** play or pause, **D-pad/left stick** seek and adjust volume, **B** mute, **Y** fullscreen, and **bumpers/triggers** skip 10 seconds.
+## Gamepad support
 
-`youtube-player.html` demonstrates the same gamepad mapping with `https://www.youtube.com/watch?v=Q5Lvtjzde6o` through YouTube's IFrame Player API.
+Controllers use the browser’s standard gamepad mapping. Support marked **conditional** requires the source, browser, or connected device to expose that capability.
+
+| Capability | YouTube IFrame API | `youtube-player.html` | Video.js + HLS | `player.html` |
+| --- | --- | --- | --- | --- |
+| Play/pause, seek, volume, mute | Yes | A/Start; D-pad or left stick; B | Yes | A; D-pad or left stick; B |
+| Fullscreen | Host iframe only | Y | Yes | Y |
+| Skip 10 seconds | Yes | Bumpers/triggers | Yes | Bumpers/triggers |
+| Playback speed | Yes | Not bound after removing the custom menu | Yes | Native Settings: **Speed** |
+| Manual quality selection | No; YouTube removed the API | No | Yes; pin a rendition or return to ABR Auto | Native Settings: **Quality** |
+| Quality status | Change event only | No page-owned display | Active rendition and selection state | Native Settings: **Quality** |
+| Captions/subtitles | Conditional caption font-size module only; no runtime visibility toggle | No | Conditional text-track toggle and selection | X; Native Settings: **Captions** |
+| Alternate audio tracks | No | No | Conditional HLS audio renditions | Native Settings: **Audio** |
+| Picture-in-picture | No IFrame Player API control | No | Conditional browser API | L3 |
+| Remote playback / casting | No IFrame Player API control | No | Conditional browser API | R3 |
+| YouTube Settings, Watch later, Share | No; cross-origin YouTube UI | No | Not applicable; this player owns its UI | Not applicable |
+
+For `player.html`, **B9 / ☰ Hamburger** opens Video.js’s native Settings menu. D-pad or left stick up/down moves focus; A or right opens a category or selects its focused option; B, **B8 / Back**, or left closes the menu. The native menu omits unavailable source-dependent controls.
+See [GAMEPAD_SUPPORT_REPORT.md](GAMEPAD_SUPPORT_REPORT.md) for API boundaries, controller mappings, source-dependent behavior, and browser verification.
 
 ## AWS S3 and CloudFront deployment
 

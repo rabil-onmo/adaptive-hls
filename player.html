@@ -4,22 +4,13 @@
 <title>Adaptive HLS test</title>
 <style>
   body {
-    font:
-      16px system-ui,
-      sans-serif;
+    font: 16px system-ui, sans-serif;
     margin: 2rem auto;
     max-width: 960px;
     padding: 0 1rem;
   }
-  video-player,
-  video-skin,
-  hlsjs-video {
-    display: block;
-    width: 100%;
-  }
-  .controller-help {
-    color: #555;
-  }
+  video-player, video-skin, hlsjs-video { display: block; width: 100%; }
+  .controller-help { color: #555; }
 </style>
 <script type="importmap">
   {
@@ -36,8 +27,10 @@
 
   document.addEventListener("DOMContentLoaded", () => {
     const video = document.querySelector("hlsjs-video");
+    const skin = document.querySelector("video-skin");
     const status = document.querySelector("#controller-status");
     const states = new Map();
+    const controls = skin.shadowRoot;
     let frame = 0;
 
     video.source = {
@@ -54,57 +47,94 @@
       state[index] = pressed;
       return justPressed;
     };
-    const changeVolume = (amount) => {
-      video.muted = false;
-      video.volume = Math.max(0, Math.min(1, video.volume + amount));
+    const nativeMenu = () => controls.querySelector("media-menu");
+    const nativeControl = (selector, name) => {
+      const control = controls.querySelector(selector);
+      if (!control || control.hidden) {
+        status.textContent = `${name} is unavailable.`;
+        return;
+      }
+      control.click();
+    };
+    const nativeSlider = (label, key) => {
+      const slider = controls.querySelector(`media-slider-thumb[aria-label="${label}"]`);
+      if (!slider) return;
+      slider.focus();
+      slider.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true, composed: true }));
+    };
+    const openNativeMenu = () => {
+      const menu = nativeMenu();
+      if (menu.open) {
+        menu.close();
+        return;
+      }
+      menu.openMenu();
+      menu.querySelector(":scope > media-menu-content[role=menu] > media-menu-item:not([hidden])")?.focus();
+    };
+    const navigateNativeMenu = (key) => {
+      controls.activeElement?.dispatchEvent(
+        new KeyboardEvent("keydown", { key, bubbles: true, composed: true }),
+      );
+    };
+    const activateNativeMenuItem = () => {
+      const active = controls.activeElement;
+      if (["menuitem", "menuitemradio"].includes(active?.getAttribute("role"))) {
+        active.click();
+      }
     };
     const seek = (amount) => {
       if (!Number.isFinite(video.currentTime)) return;
-      const duration = Number.isFinite(video.duration)
-        ? video.duration
-        : Infinity;
-      video.currentTime = Math.max(
-        0,
-        Math.min(duration, video.currentTime + amount),
-      );
-    };
-    const togglePlayback = () => {
-      if (video.paused) video.play().catch(() => {});
-      else video.pause();
-    };
-    const toggleFullscreen = () => {
-      (video.isFullscreen
-        ? video.exitFullscreen()
-        : video.requestFullscreen()
-      ).catch(() => {});
+      const duration = Number.isFinite(video.duration) ? video.duration : Infinity;
+      video.currentTime = Math.max(0, Math.min(duration, video.currentTime + amount));
     };
     const handleGamepad = (gamepad) => {
-      const state = states.get(gamepad.index) ?? [];
-      states.set(gamepad.index, state);
+      const gamepadState = states.get(gamepad.index) ?? [];
+      states.set(gamepad.index, gamepadState);
 
-      if (edge(state, 0, buttonPressed(gamepad, 0))) togglePlayback(); // A / Cross
-      if (edge(state, 9, buttonPressed(gamepad, 9))) togglePlayback(); // Start
-      if (edge(state, 1, buttonPressed(gamepad, 1))) video.muted = !video.muted; // B / Circle
-      if (edge(state, 3, buttonPressed(gamepad, 3))) toggleFullscreen(); // Y / Triangle
-      const skipBackward = edge(state, 4, buttonPressed(gamepad, 4));
-      const rewind = edge(state, 6, buttonPressed(gamepad, 6));
-      const skipForward = edge(state, 5, buttonPressed(gamepad, 5));
-      const fastForward = edge(state, 7, buttonPressed(gamepad, 7));
-      const dpadLeft = edge(state, 14, buttonPressed(gamepad, 14));
-      const stickLeft = edge(state, 20, (gamepad.axes[0] ?? 0) < -0.5);
-      const dpadRight = edge(state, 15, buttonPressed(gamepad, 15));
-      const stickRight = edge(state, 21, (gamepad.axes[0] ?? 0) > 0.5);
-      const dpadUp = edge(state, 12, buttonPressed(gamepad, 12));
-      const stickUp = edge(state, 22, (gamepad.axes[1] ?? 0) < -0.5);
-      const dpadDown = edge(state, 13, buttonPressed(gamepad, 13));
-      const stickDown = edge(state, 23, (gamepad.axes[1] ?? 0) > 0.5);
+      const play = edge(gamepadState, 0, buttonPressed(gamepad, 0));
+      const mute = edge(gamepadState, 1, buttonPressed(gamepad, 1));
+      const captions = edge(gamepadState, 2, buttonPressed(gamepad, 2));
+      const fullscreen = edge(gamepadState, 3, buttonPressed(gamepad, 3));
+      const skipBackward = edge(gamepadState, 4, buttonPressed(gamepad, 4));
+      const skipForward = edge(gamepadState, 5, buttonPressed(gamepad, 5));
+      const rewind = edge(gamepadState, 6, buttonPressed(gamepad, 6));
+      const fastForward = edge(gamepadState, 7, buttonPressed(gamepad, 7));
+      const back = edge(gamepadState, 8, buttonPressed(gamepad, 8));
+      const menu = edge(gamepadState, 9, buttonPressed(gamepad, 9));
+      const pictureInPicture = edge(gamepadState, 10, buttonPressed(gamepad, 10));
+      const remotePlayback = edge(gamepadState, 11, buttonPressed(gamepad, 11));
+      const dpadUp = edge(gamepadState, 12, buttonPressed(gamepad, 12));
+      const dpadDown = edge(gamepadState, 13, buttonPressed(gamepad, 13));
+      const dpadLeft = edge(gamepadState, 14, buttonPressed(gamepad, 14));
+      const dpadRight = edge(gamepadState, 15, buttonPressed(gamepad, 15));
+      const stickLeft = edge(gamepadState, 20, (gamepad.axes[0] ?? 0) < -0.5);
+      const stickRight = edge(gamepadState, 21, (gamepad.axes[0] ?? 0) > 0.5);
+      const stickUp = edge(gamepadState, 22, (gamepad.axes[1] ?? 0) < -0.5);
+      const stickDown = edge(gamepadState, 23, (gamepad.axes[1] ?? 0) > 0.5);
 
+      if (menu) openNativeMenu();
+      if (nativeMenu().open) {
+        if (mute || back || dpadLeft || stickLeft) nativeMenu().close();
+        else {
+          if (dpadUp || stickUp) navigateNativeMenu("ArrowUp");
+          if (dpadDown || stickDown) navigateNativeMenu("ArrowDown");
+          if (dpadRight || stickRight || play) activateNativeMenuItem();
+        }
+        return;
+      }
+
+      if (play) nativeControl("media-play-button", "Playback");
+      if (mute) nativeControl("media-mute-button", "Mute");
+      if (captions) nativeControl("media-captions-button", "Captions");
+      if (fullscreen) nativeControl("media-fullscreen-button", "Fullscreen");
+      if (pictureInPicture) nativeControl("media-pip-button", "Picture-in-picture");
+      if (remotePlayback) nativeControl("media-cast-button", "Remote playback");
       if (skipBackward || rewind) seek(-10);
       if (skipForward || fastForward) seek(10);
-      if (dpadLeft || stickLeft) seek(-5);
-      if (dpadRight || stickRight) seek(5);
-      if (dpadUp || stickUp) changeVolume(0.05);
-      if (dpadDown || stickDown) changeVolume(-0.05);
+      if (dpadLeft || stickLeft) nativeSlider("Seek", "ArrowLeft");
+      if (dpadRight || stickRight) nativeSlider("Seek", "ArrowRight");
+      if (dpadUp || stickUp) nativeSlider("Volume", "ArrowUp");
+      if (dpadDown || stickDown) nativeSlider("Volume", "ArrowDown");
     };
     const updateGamepads = () => {
       let connected = false;
@@ -138,8 +168,10 @@
   </video-skin>
 </video-player>
 <p class="controller-help">
-  Controller: A / Start play or pause; D-pad or left stick seek and adjust
-  volume; B mute; Y fullscreen; bumpers/triggers skip 10 seconds.
+  Controller: A play or pause; B mute or close the native Settings menu; X
+  captions; Y fullscreen; bumpers/triggers skip 10 seconds; B9 / ☰ Hamburger
+  opens Video.js Settings; B8 / Back goes back; D-pad or left stick navigates
+  its menu; L3 picture-in-picture; R3 remote playback.
 </p>
 <p id="controller-status" role="status" aria-live="polite">
   Connect a controller and press a button to use gamepad controls.
