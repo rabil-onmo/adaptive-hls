@@ -286,6 +286,76 @@
       grid-template-columns: 1fr;
     }
   }
+
+  /* Present a branded skeleton rather than an empty page while remote player modules load. */
+  #app-loader {
+    align-items: center;
+    background: var(--background);
+    display: grid;
+    inset: 0;
+    justify-items: center;
+    padding: 1.5rem;
+    position: fixed;
+    z-index: 9999;
+  }
+  #app-loader[hidden] { display: none; }
+  .loader-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 1.25rem;
+    box-shadow: 0 20px 50px var(--card-shadow);
+    max-width: 32rem;
+    overflow: hidden;
+    padding: 1.25rem;
+    width: min(100%, 32rem);
+  }
+  .loader-kicker { color: var(--accent); font-size: 0.75rem; font-weight: 750; letter-spacing: 0.1em; margin: 0; text-transform: uppercase; }
+  .loader-title { color: var(--text); font-size: 1.25rem; letter-spacing: -0.02em; margin: 0.35rem 0 0; }
+  .loader-copy { color: var(--muted); margin: 0.4rem 0 1.25rem; }
+  .loader-preview {
+    align-items: center;
+    aspect-ratio: 16 / 9;
+    background: linear-gradient(120deg, #121b2c, #263450, #121b2c);
+    background-size: 200% 100%;
+    border-radius: 0.75rem;
+    display: grid;
+    justify-items: center;
+    overflow: hidden;
+    position: relative;
+  }
+  .loader-preview::after {
+    background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.13), transparent);
+    content: "";
+    inset: 0;
+    position: absolute;
+    transform: translateX(-100%);
+  }
+  .loader-play {
+    border: 2px solid rgb(255 255 255 / 0.8);
+    border-radius: 50%;
+    height: 3.25rem;
+    position: relative;
+    width: 3.25rem;
+  }
+  .loader-play::after {
+    border-block: 0.55rem solid transparent;
+    border-left: 0.75rem solid #fff;
+    content: "";
+    left: 1.15rem;
+    position: absolute;
+    top: 0.95rem;
+  }
+  .loader-progress { background: var(--border); border-radius: 99px; height: 0.35rem; margin-top: 1rem; overflow: hidden; }
+  .loader-progress::before { animation: loader-progress 1.35s ease-in-out infinite; background: var(--accent); border-radius: inherit; content: ""; display: block; height: 100%; width: 42%; }
+  .loader-preview { animation: loader-preview-shimmer 1.8s ease-in-out infinite; }
+  .loader-preview::after { animation: loader-sweep 1.8s ease-in-out infinite; }
+  @keyframes loader-progress { 0% { transform: translateX(-110%); } 55%, 100% { transform: translateX(260%); } }
+  @keyframes loader-preview-shimmer { 0%, 100% { background-position: 100% 0; } 50% { background-position: 0 0; } }
+  @keyframes loader-sweep { 0%, 100% { transform: translateX(-100%); } 50% { transform: translateX(100%); } }
+  @media (prefers-reduced-motion: reduce) {
+    .loader-progress::before, .loader-preview, .loader-preview::after { animation: none; }
+    .loader-progress::before { transform: translateX(70%); }
+  }
 </style>
 <script type="importmap">
   {
@@ -295,14 +365,23 @@
     }
   }
 </script>
+<!-- This remains visible while esm.sh downloads and registers Video.js web components. -->
+<div id="app-loader" role="status" aria-live="polite" aria-label="Loading video player">
+  <section class="loader-card" aria-label="Preparing video player">
+    <p class="loader-kicker">Adaptive streaming</p>
+    <h1 class="loader-title">Preparing your player</h1>
+    <p class="loader-copy">Loading playback controls and stream support.</p>
+    <div class="loader-preview" aria-hidden="true"><span class="loader-play"></span></div>
+    <div class="loader-progress" aria-hidden="true"></div>
+  </section>
+</div>
 <!-- Load Video.js web components and its hls.js-backed media element. -->
 <script type="module">
   import "@videojs/html/video/player";
   import "@videojs/html/video/skin";
   import "@videojs/html/media/hlsjs-video";
 
-  // Wait for the declarative form and custom player elements to exist before wiring them together.
-  document.addEventListener("DOMContentLoaded", () => {
+  document.addEventListener("DOMContentLoaded", async () => {
     // Keep references to the media element, its native Video.js controls, and the page-owned controls.
     const video = document.querySelector("hlsjs-video");
     const skin = document.querySelector("video-skin");
@@ -310,7 +389,18 @@
     const sourceInput = document.querySelector("#source-url");
     const status = document.querySelector("#controller-status");
     const themeToggle = document.querySelector("#theme-toggle");
+    const appLoader = document.querySelector("#app-loader");
     const themeIcon = document.querySelector("#theme-icon");
+
+    // Imports above register these elements; wait explicitly so the loading overlay cannot disappear early.
+    await Promise.all(
+      ["video-player", "video-skin", "hlsjs-video"].map((name) =>
+        customElements.whenDefined(name),
+      ),
+    );
+    requestAnimationFrame(() => {
+      appLoader.hidden = true;
+    });
     const themeLabel = document.querySelector("#theme-label");
     const controls = skin.shadowRoot;
 
