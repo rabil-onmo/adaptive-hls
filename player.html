@@ -10,7 +10,31 @@
     padding: 0 1rem;
   }
   video-player, video-skin, hlsjs-video { display: block; width: 100%; }
-  .controller-help { color: #555; }
+  .controller-help {
+    border: 1px solid #ddd;
+    border-radius: 0.75rem;
+    margin-top: 1rem;
+    padding: 1rem;
+  }
+  .controller-help h2 { font-size: 1rem; margin: 0 0 0.75rem; }
+  .controller-help ul {
+    display: grid;
+    gap: 0.5rem;
+    grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .controller-help li { align-items: center; display: flex; gap: 0.5rem; }
+  kbd {
+    background: #f3f3f3;
+    border: 1px solid #bbb;
+    border-radius: 0.25rem;
+    font: inherit;
+    padding: 0.1rem 0.35rem;
+    white-space: nowrap;
+  }
+  #controller-status { color: #555; }
 </style>
 <script type="importmap">
   {
@@ -37,6 +61,9 @@
       src: new URL("master.m3u8", location.href).href,
       capRenditionToPlayerSize: false,
     };
+    controls.querySelector("media-play-button").addEventListener("click", () => {
+      video.muted = false;
+    });
 
     const buttonPressed = (gamepad, index) => {
       const button = gamepad.buttons[index];
@@ -167,12 +194,19 @@
     <hlsjs-video crossorigin="anonymous" muted playsinline></hlsjs-video>
   </video-skin>
 </video-player>
-<p class="controller-help">
-  Controller: A play or pause; B mute or close the native Settings menu; X
-  captions; Y fullscreen; bumpers/triggers skip 10 seconds; B9 / ☰ Hamburger
-  opens Video.js Settings; B8 / Back goes back; D-pad or left stick navigates
-  its menu; L3 picture-in-picture; R3 remote playback.
-</p>
+<section class="controller-help" aria-labelledby="controller-help-title">
+  <h2 id="controller-help-title">Controller controls</h2>
+  <ul>
+    <li><kbd>A</kbd> Play or pause; choose a setting</li>
+    <li><kbd>B</kbd> Mute; close Settings</li>
+    <li><kbd>X</kbd> Captions <span aria-hidden="true">·</span> <kbd>Y</kbd> Fullscreen</li>
+    <li><kbd>LB/RB/LT/RT</kbd> Seek 10 seconds</li>
+    <li><kbd>B9 / ☰</kbd> Open Video.js Settings</li>
+    <li><kbd>B8 / Back</kbd> Close Settings</li>
+    <li><kbd>D-pad / left stick</kbd> Seek, volume, or navigate Settings</li>
+    <li><kbd>L3</kbd> Picture-in-picture <span aria-hidden="true">·</span> <kbd>R3</kbd> Remote playback</li>
+  </ul>
+</section>
 <p id="controller-status" role="status" aria-live="polite">
   Connect a controller and press a button to use gamepad controls.
 </p>
